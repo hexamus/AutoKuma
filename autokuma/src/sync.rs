@@ -30,6 +30,29 @@ impl Sync {
         })
     }
 
+    match entity.clone() {
+    Entity::Monitor(mut monitor) => {
+        // <-- ajout de la valeur par défaut
+        if monitor.conditions.is_none() {
+            monitor.conditions = Some("[]".to_string());
+        }
+
+        match kuma.add_monitor(monitor).await {
+            Ok(monitor) => {
+                let db_id = monitor.common().id().ok_or_else(|| {
+                    KumaError::CommunicationError(
+                        "Did not receive an id from Uptime Kuma".to_owned(),
+                    )
+                })?;
+                self.app_state.db.store_id(Name::Monitor(id.clone()), db_id)?;
+                Ok(())
+            }
+            Err(err) => Err(err),
+        }?;
+    }
+    // ... les autres branches restent identiques
+}
+
     async fn create_entity(&self, kuma: &Client, id: &String, entity: &Entity) -> Result<()> {
         info!("Creating new {}: {}", entity.entity_type(), id);
         match entity.clone() {
